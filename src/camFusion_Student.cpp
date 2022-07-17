@@ -159,5 +159,55 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
 
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
 {
-    // ...
+    std::map<int, std::map<int, int>> matchCounts {};
+    std::vector<int> maxMatchIdx(currFrame.boundingBoxes.size(), 0);
+    std::vector<int> maxMatchCounts(currFrame.boundingBoxes.size(), 0);
+    // predefine 2d map for matching 
+    for(int i = 0; i < currFrame.boundingBoxes.size(); ++i)
+    {
+        for(int j = 0; j < prevFrame.boundingBoxes.size(); ++j)
+        {
+            matchCounts[i][j] = 0;
+        }
+    }
+
+    // Associate keypoints in matches with bounding boxes
+    for (auto match: matches) 
+    {
+        cv::KeyPoint prevKp = prevFrame.keypoints[match.queryIdx];
+        cv::KeyPoint currKp = prevFrame.keypoints[match.trainIdx];
+
+        int prevBoxId = -1, currBoxId = -1;
+
+        //find matching bbox ids from previous frame
+        for (auto bbox: prevFrame.boundingBoxes) 
+        {
+            if(bbox.roi.contains(prevKp.pt)) {
+                prevBoxId = bbox.boxID;
+            }
+        }
+        //find matching bbox ids from current frame
+        for (auto bbox: currFrame.boundingBoxes) 
+        {
+            if(bbox.roi.contains(currKp.pt)) {
+                currBoxId = bbox.boxID;
+            }
+        }
+        
+        if((prevBoxId != -1) && (currBoxId != -1)) 
+        {
+            matchCounts[currBoxId][prevBoxId] += 1;
+            int count = matchCounts[currBoxId][prevBoxId];
+            if(count > maxMatchCounts[currBoxId]) {
+                maxMatchCounts[currBoxId] = count;
+                maxMatchIdx[currBoxId] = prevBoxId;
+            }
+        }
+    }
+
+    for(int boxId = 0; boxId < currFrame.boundingBoxes.size(); ++i)
+    {
+        if(maxMatchCounts[boxId] != 0)
+            bbBestMatches.insert({boxId, maxMatchIdx[boxId]});
+    }
 }
