@@ -48,7 +48,7 @@ In each match, it associates the keypoints in the match to the bounding box of e
 If it associated successfully, then it count up match counts for index pair of bounding boxes.
 Finally, it returns the highest match.
 
-Please refer `matchBoundingBoxes()` in L236:292 of `camFusion_Student.cpp` for the details.
+Please refer `matchBoundingBoxes()` in `camFusion_Student.cpp` for the details.
 
 
 ### FP2. Compute Lidar-based TTC
@@ -93,9 +93,20 @@ In Frame #2 and #3, we can see the outlier in the edge of the target object, if 
 
 ### FP6. Performance Evaluation 2
 
-Run several detector / descriptor combinations and look at the differences in TTC estimation. 
-Find out which methods perform best and also include several examples where camera-based TTC estimation is way off. 
-As with Lidar, describe your observations again and also look into potential reasons.
+I changed the `FinalProject_Camera.cpp` to change detector / descriptor pairs in command line.
+Then, I get result of all detector / descriptor pairs to evaluate performance.
+The code for testing all combinations is in `evaluate.py` and the result is in `result.xlsx`.
 
-All detector / descriptor combinations implemented in previous chapters have been compared with regard to the TTC estimate on a frame-by-frame basis. 
-To facilitate comparison, a spreadsheet and graph should be used to represent the different TTCs.
+I compared each pair of detector / descriptor to the Lidar TTC result.
+I observed some not available values(i.e. nan, -inf) for HARRIS and ORB detector therefore it is not appropriate for TTC measurement.
+Then, I choosed top three combinations for camera TTC computation based on sum of absolute error and average error from Lidar TTC result.
+
+The top 3 are:
+
+| Detector/Descriptor | Sum of absolute error(s) | Mean of error(s) |
+| --- | --- | --- |
+| AKAZE/AKAZE | 13.01 | 1.08 |
+| FAST/BRISK | 15.12 | 1.26 |
+| FAST/ORB | 18.20 | 1.52 |
+
+![TTC for various detectors/descriptors](images/ttc-measurement.png)
