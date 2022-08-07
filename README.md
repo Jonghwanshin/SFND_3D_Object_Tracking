@@ -99,14 +99,22 @@ The code for testing all combinations is in `evaluate.py` and the result is in `
 
 I compared each pair of detector / descriptor to the Lidar TTC result.
 I observed some not available values(i.e. nan, -inf) for HARRIS and ORB detector therefore it is not appropriate for TTC measurement.
+For example, there are nan measurement and -inf measurement.
+
+| Example | Description |
+| --- | --- |
+| ![](images/camera-difficulties-01.png)| We can see the camera TTC is -inf. <br> In this case, the median of distance ratio to get camera TTC is 1, therefore resulting -inf. <br> I assume that this could happen if the target object is moving the same speed to the ego vehicle, so the distance ratio is not changing over frames. |
+| ![](images/camera-difficulties-02.png)| In this case, we can see the camera TTC is nan. <br> For this particular case, there are only four keypoint matches over frames and all of them are below the threshold. <br> (i.e. minDist in `computeTTCamera()`). <br> I assume that this could happen when there are not enough keypoint correspondences. |
+
+
 Then, I choosed top three combinations for camera TTC computation based on sum of absolute error and average error from Lidar TTC result.
 
 The top 3 are:
 
 | Detector/Descriptor | Sum of absolute error(s) | Mean of error(s) |
 | --- | --- | --- |
-| AKAZE/AKAZE | 13.01 | 1.08 |
-| FAST/BRISK | 15.12 | 1.26 |
-| FAST/ORB | 18.20 | 1.52 |
+| SIFT/FREAK | 10.09 | 0.84 |
+| AKAZE/SIFT | 12.54 | 1.02 |
+| SIFT/BRISK | 12.26 | 1.04 |
 
-![TTC for various detectors/descriptors](images/ttc-measurement.png)
+![TTC for various detectors/descriptors](images/ttc_measurement.png)
