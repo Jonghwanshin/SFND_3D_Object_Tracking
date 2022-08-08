@@ -218,6 +218,24 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
     TTC = -dT / (1 - medDistRatio);
 }
 
+void getMeanStdDev(std::vector<LidarPoint> & lidarPoints, double& mean, double& std_dev)
+{
+    double sum = 0.0f;
+    std::accumulate(lidarPoints.begin(), lidarPoints.end(), 0, [](const int& a, LidarPoint& p)
+    {
+        return a + p.x; 
+    });
+
+    // get mean and std dev
+    mean = sum / lidarPoints.size();
+    std::vector<double> diff(lidarPoints.size());
+    for(auto p : lidarPoints)
+    {
+        diff.push_back(p.x - mean);
+    }
+    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+    std_dev = std::sqrt(sq_sum / diff.size());
+}
 
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
@@ -226,27 +244,41 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
     double dT = 1 / frameRate;        // time between two measurements in seconds
     double deltaX = 1 / frameRate;
 
-    // find closest distance to Lidar points within ego lane
+    // find mean and std.dev from lidar measurements
+    double mean_prev = 0.0f, stddev_prev = 0.0f;
+    double mean_curr = 0.0f, stddev_curr = 0.0f;
+    getMeanStdDev(lidarPointsPrev, mean_prev, stddev_prev);
+    getMeanStdDev(lidarPointsCurr, mean_curr, stddev_curr);
 
-    std::sort(lidarPointsPrev.begin(), lidarPointsPrev.end(), 
-        [](const LidarPoint& p1, LidarPoint& p2) 
+    // find inliers which resides in 3 * std_dev
+    std::vector<double> inliers_prev;
+    std::vector<double> inliers_curr;
+
+    for (auto p : lidarPointsPrev)
     {
-        return p1.x < p2.x;
-    });
+        if(abs(p.x - mean_prev) < 3 * stddev_prev)
+        {
+            inliers_prev.push_back(p.x);
+        }
+    }
 
-    std::sort(lidarPointsCurr.begin(), lidarPointsCurr.end(), 
-        [](const LidarPoint& p1, LidarPoint& p2) 
+    for (auto p : lidarPointsCurr)
     {
-        return p1.x < p2.x;
-    });
+        if(abs(p.x - mean_curr) < 3 * stddev_curr)
+        {
+            inliers_curr.push_back(p.x);
+        }
+    }
 
-    double minXPrev = 1e9, minXCurr = 1e9;
-    minXPrev = lidarPointsPrev[lidarPointsPrev.size()/2].x;
-    minXCurr = lidarPointsCurr[lidarPointsCurr.size()/2].x;
+    // get mean value of inliers
+    double d0 = 1e9, d1 = 1e9;
+    d0 = std::accumulate(inliers_prev.begin(), inliers_prev.end(), 0.0) / inliers_prev.size();
+    d1 = std::accumulate(inliers_curr.begin(), inliers_curr.end(), 0.0) / inliers_curr.size();
 
     // Using the constant-velocity model 
-    TTC = minXCurr * dT / (minXPrev - minXCurr);
+    TTC = d1 * dT / (d0 - d1);
 }
+
 
 
 void matchBoundingBoxes(
@@ -258,14 +290,6 @@ void matchBoundingBoxes(
     std::vector<int> maxMatchIdx(currFrame.boundingBoxes.size(), 0);
     std::vector<int> maxMatchCounts(currFrame.boundingBoxes.size(), 0);
     std::vector<bool> isUsed(prevFrame.boundingBoxes.size());
-    // predefine 2d map for matching 
-    for(int i = 0; i < currFrame.boundingBoxes.size(); ++i)
-    {
-        for(int j = 0; j < prevFrame.boundingBoxes.size(); ++j)
-        {
-            matchCounts[i][j] = 0;
-        }
-    }
 
     // Associate keypoints in matches with bounding boxes
     for (auto match: matches) 
@@ -292,6 +316,18 @@ void matchBoundingBoxes(
         
         if((prevBoxId != -1) && (currBoxId != -1)) 
         {
+            if(matchCounts.find(currBoxId) == matchCounts.end())
+            {
+                matchCounts.insert({prevBoxId, std::map<int, int>()});
+                matchCounts[currBoxId][prevBoxId] = 0;
+            }
+            else
+            {
+                if(matchCounts[currBoxId].find(prevBoxId) == matchCounts[currBoxId].end())
+                {
+                    matchCounts[currBoxId][prevBoxId] = 0;
+                }
+            }
             matchCounts[currBoxId][prevBoxId] += 1;
             int count = matchCounts[currBoxId][prevBoxId];
             if(count > maxMatchCounts[currBoxId]) {

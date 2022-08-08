@@ -27,8 +27,8 @@ int main(int argc, const char *argv[])
 {
     /* INIT VARIABLES AND DATA STRUCTURES */
 
-    string detectorType = "FAST"; //AKAZE, BRISK, FAST, HARRIS, ORB, SHITOMASI
-    string descriptorType = "BRISK"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
+    string detectorType = "SIFT"; //AKAZE, BRISK, FAST, HARRIS, ORB, SHITOMASI
+    string descriptorType = "FREAK"; // BRISK, BRIEF, ORB, FREAK, AKAZE, SIFT
     bool bVis = true;
 
     if(argc > 2)
@@ -155,7 +155,7 @@ int main(int argc, const char *argv[])
         // Visualize 3D objects
         if(bVis)
         {
-            show3DObjects((dataBuffer.end()-1)->boundingBoxes, cv::Size(4.0, 20.0), cv::Size(2000, 2000), true);
+            show3DObjects((dataBuffer.end()-1)->boundingBoxes, cv::Size(4.0, 20.0), cv::Size(2000, 2000), false);
         }
 
         // cout << "#4 : CLUSTER LIDAR POINT CLOUD done" << endl;
@@ -309,7 +309,7 @@ int main(int argc, const char *argv[])
                         cv::imshow(windowName, visImg);
                         
                         printf("TTC Lidar : %f s, TTC Camera : %f s\n", ttcLidar, ttcCamera);
-                        cout << "Press key to continue to next frame" << endl;
+                         cout << "Press key to continue to next frame" << endl;
                         cv::waitKey(0);
                     }
                     else

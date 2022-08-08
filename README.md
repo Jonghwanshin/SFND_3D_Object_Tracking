@@ -54,8 +54,10 @@ Please refer `matchBoundingBoxes()` in `camFusion_Student.cpp` for the details.
 ### FP2. Compute Lidar-based TTC
 
 I implementated a lidar based TTC computation based on the constant-velocity model.
-First, the algorithm sort the distance of each points in ascending order for each box. 
-I reduced outlier influence by measuring TTC with using median distance not the closest one.
+For reducing outlier influence on TTC measurement, I only considered the inliers on each measurement which are resides under 99.7% confidence interval(<=3*sigma).
+Therefore, the code calculates the mean and the standard deviation of each frame.
+Then, it finds inliers which resides under 99.7 confidence interval.
+Finally, it compute distances by mean value of inliers in each frame.
 
 Please refer `computeTTCLidar()` in `camFusion_Student.cpp` for the details.
 
@@ -113,8 +115,8 @@ The top 3 are:
 
 | Detector/Descriptor | Sum of absolute error(s) | Mean of error(s) |
 | --- | --- | --- |
-| SIFT/FREAK | 10.09 | 0.84 |
-| AKAZE/SIFT | 12.54 | 1.02 |
-| SIFT/BRISK | 12.26 | 1.04 |
+| SIFT/FREAK | 11.98 | 1.00 |
+| SIFT/BRISK | 12.08 | 1.01 |
+| SIFT/BRIEF | 12.61 | 1.05 |
 
 ![TTC for various detectors/descriptors](images/ttc_measurement.png)
